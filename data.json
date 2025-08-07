@@ -1,0 +1,39 @@
+{
+  "plans": [
+    {
+      "id": "plan_332cce",
+      "name": "Push",
+      "exercises": [
+        {
+          "id": "ex_5dbe61",
+          "name": "Bench Press",
+          "primary_muscle": "Chest",
+          "secondary_muscle": "None",
+          "tertiary_muscle": "None",
+          "pb_total_volume": 1440.0
+        },
+        {
+          "id": "ex_4b65f0",
+          "name": "Lateral Raises",
+          "primary_muscle": "Shoulders",
+          "secondary_muscle": "None",
+          "tertiary_muscle": "None",
+          "pb_total_volume": 135.0
+        }
+      ]
+    }
+  ],
+  "muscle_groups": [
+    "None",
+    "Chest",
+    "Back",
+    "Shoulders",
+    "Biceps",
+    "Triceps",
+    "Quads",
+    "Hamstrings",
+    "Glutes",
+    "Calves",
+    "Abs"
+  ]
+}
