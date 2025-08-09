@@ -1,24 +1,17 @@
 {
   "plans": [
     {
-      "id": "plan_332cce",
-      "name": "Push",
+      "id": "plan_a569d533e10b4e89",
+      "name": "New Plan",
       "exercises": [
         {
-          "id": "ex_5dbe61",
-          "name": "Bench Press",
+          "id": "ex_7d7293382d364657",
+          "name": "test",
           "primary_muscle": "Chest",
           "secondary_muscle": "None",
-          "tertiary_muscle": "None",
-          "pb_total_volume": 1440.0
-        },
-        {
-          "id": "ex_4b65f0",
-          "name": "Lateral Raises",
-          "primary_muscle": "Shoulders",
-          "secondary_muscle": "None",
-          "tertiary_muscle": "None",
-          "pb_total_volume": 135.0
+          "rest_time": 60,
+          "is_unilateral": true,
+          "is_bodyweight": false
         }
       ]
     }
@@ -35,5 +28,6 @@
     "Glutes",
     "Calves",
     "Abs"
-  ]
+  ],
+  "workout_sessions": []
 }

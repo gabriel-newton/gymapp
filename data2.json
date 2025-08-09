@@ -1,0 +1,23 @@
+{
+  "plans": [
+    {
+      "id": "plan_079813",
+      "name": "New Plan",
+      "exercises": []
+    }
+  ],
+  "muscle_groups": [
+    "None",
+    "Chest",
+    "Back",
+    "Shoulders",
+    "Biceps",
+    "Triceps",
+    "Quads",
+    "Hamstrings",
+    "Glutes",
+    "Calves",
+    "Abs"
+  ],
+  "workout_sessions": []
+}
