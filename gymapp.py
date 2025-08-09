@@ -16,12 +16,14 @@ from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.modalview import ModalView
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.progressbar import ProgressBar
 from kivy.properties import StringProperty, ListProperty, NumericProperty, ObjectProperty, DictProperty, BooleanProperty
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
@@ -88,6 +90,8 @@ KV = f'''
 
 <TextInput>:
     background_color: 0, 0, 0, 0
+    background_normal: ''
+    background_active: ''
     foreground_color: {TEXT_COLOR}
     cursor_color: {ACCENT_COLOR}
     padding: [15, 10, 15, 10]
@@ -118,6 +122,10 @@ KV = f'''
             size: self.size
             radius: [{RADIUS}]
 
+<ProgressBar>:
+    size_hint_y: None
+    height: '8dp'
+    
 # --- Custom Widgets ---
 <ConfirmationPopup>:
     size_hint: 0.8, 0.4
@@ -203,24 +211,34 @@ KV = f'''
     size_hint_y: None
     height: '60dp'
     spacing: '10dp'
+    is_editing: False
     Button:
         id: main_button
         text: 'Plan'
-    Button:
-        text: 'X'
-        id: delete_button
-        size_hint_x: 0
-        width: 0
-        opacity: 0
-        disabled: True
-        canvas.before:
-            Color:
-                rgba: {DANGER_COLOR}
-            RoundedRectangle:
-                pos: self.pos
-                size: self.size
-                radius: [{RADIUS}]
-        color: {get_color_from_hex('#FFFFFF')}
+    
+    BoxLayout:
+        size_hint_x: 0.4 if root.is_editing else 0
+        width: self.minimum_width if root.is_editing else 0
+        opacity: 1 if root.is_editing else 0
+        disabled: not root.is_editing
+        spacing: '5dp'
+        Button:
+            id: move_up_button
+            text: '▲'
+        Button:
+            id: move_down_button
+            text: '▼'
+        Button:
+            id: delete_button
+            text: 'X'
+            canvas.before:
+                Color:
+                    rgba: {DANGER_COLOR}
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [{RADIUS}]
+            color: {get_color_from_hex('#FFFFFF')}
 
 <ExerciseListItem>:
     size_hint_y: None
@@ -231,14 +249,7 @@ KV = f'''
     Button:
         id: main_button
         text: 'Exercise'
-    Label:
-        id: check_mark
-        text: '✓' if root.is_complete else ''
-        font_size: '28sp'
-        color: {SUCCESS_COLOR}
-        size_hint_x: 0.15 if not root.is_editing else 0
-        width: self.texture_size[0] if not root.is_editing else 0
-        opacity: 1 if not root.is_editing else 0
+        color: SUCCESS_COLOR if root.is_complete else ACCENT_COLOR
     
     BoxLayout:
         size_hint_x: 0.4 if root.is_editing else 0
@@ -335,8 +346,11 @@ KV = f'''
         BoxLayout:
             size_hint_y: 0.15
             spacing: '10dp'
-            Button:
-                text: 'Stats'
+            Label:
+                id: last_workout_label
+                text: 'Days since last workout: N/A'
+                font_size: '14sp'
+                color: {MUTED_TEXT_COLOR}
             Button:
                 text: 'Edit'
                 on_press: root.toggle_edit_mode()
@@ -355,21 +369,34 @@ KV = f'''
         orientation: 'vertical'
         padding: '20dp'
         spacing: '15dp'
-        BoxLayout:
-            size_hint_y: 0.15
+        GridLayout:
+            cols: 3
+            size_hint_y: None
+            height: '60dp'
             spacing: '10dp'
             Button:
                 text: '<'
                 size_hint_x: 0.2
                 on_press: root.go_back_to_plans()
-            TextInput:
-                id: plan_title_input
-                text: 'Workout Plan'
-                font_size: '30sp'
-                bold: True
-                multiline: False
-                disabled: not root.is_editing
-                on_text_validate: root.rename_plan(self.text)
+            RelativeLayout:
+                Label:
+                    id: plan_title_label
+                    text: plan_title_input.text
+                    font_size: '30sp'
+                    bold: True
+                    opacity: 1 if not root.is_editing else 0
+                TextInput:
+                    id: plan_title_input
+                    text: 'Workout Plan'
+                    font_size: '30sp'
+                    bold: True
+                    multiline: False
+                    disabled: not root.is_editing
+                    on_text_validate: root.rename_plan(self.text)
+                    halign: 'center'
+                    opacity: 1 if root.is_editing else 0
+            Widget:
+                size_hint_x: 0.2
         
         ScrollView:
             bar_width: 0
@@ -463,20 +490,33 @@ KV = f'''
         orientation: 'vertical'
         padding: '20dp'
         spacing: '10dp'
-        BoxLayout:
-            size_hint_y: 0.1
+        GridLayout:
+            cols: 3
+            size_hint_y: None
+            height: '60dp'
             spacing: '10dp'
             Button:
                 text: '<'
                 size_hint_x: 0.2
                 on_press: root.go_back()
-            TextInput:
-                id: exercise_title_input
-                text: 'Exercise'
-                font_size: '30sp'
-                bold: True
-                multiline: False
-                disabled: not root.is_editing
+            RelativeLayout:
+                Label:
+                    id: exercise_title_label
+                    text: exercise_title_input.text
+                    font_size: '30sp'
+                    bold: True
+                    opacity: 1 if not root.is_editing else 0
+                TextInput:
+                    id: exercise_title_input
+                    text: 'Exercise'
+                    font_size: '30sp'
+                    bold: True
+                    multiline: False
+                    disabled: not root.is_editing
+                    halign: 'center'
+                    opacity: 1 if root.is_editing else 0
+            Widget:
+                size_hint_x: 0.2
         
         BoxLayout:
             size_hint_y: 0.8 if root.is_editing else 0
@@ -568,7 +608,13 @@ KV = f'''
         padding: '20dp'
         spacing: '10dp'
         
-        BoxLayout:
+        ProgressBar:
+            id: volume_progress_bar
+            max: 1
+            value: 0
+        
+        GridLayout:
+            cols: 3
             size_hint_y: None
             height: '60dp'
             Button:
@@ -580,6 +626,8 @@ KV = f'''
                 text: 'Active Workout'
                 font_size: '34sp'
                 bold: True
+            Widget:
+                size_hint_x: 0.2
         
         ScrollView:
             id: set_scroll
@@ -686,32 +734,6 @@ KV = f'''
                         size: self.size
                         radius: [RADIUS]
                 color: get_color_from_hex('#FFFFFF')
-
-<StatisticsScreen>:
-    BoxLayout:
-        orientation: 'vertical'
-        padding: '20dp'
-        spacing: '15dp'
-        BoxLayout:
-            size_hint_y: 0.1
-            Button:
-                text: '<'
-                size_hint_x: 0.2
-                on_press: root.manager.current = 'plan_select_screen'
-            Label:
-                text: 'Statistics & PRs'
-                font_size: '30sp'
-                bold: True
-        
-        ScrollView:
-            bar_width: 0
-            effect_cls: 'ScrollEffect'
-            GridLayout:
-                id: stats_layout
-                cols: 1
-                size_hint_y: None
-                height: self.minimum_height
-                spacing: '10dp'
 '''
 
 # --- Python Logic ---
@@ -728,7 +750,7 @@ class RestTimerPopup(ModalView):
     screen = ObjectProperty(None)
 
 class PlanListItem(BoxLayout):
-    pass
+    is_editing = BooleanProperty(False)
 
 class ExerciseListItem(BoxLayout):
     is_complete = BooleanProperty(False)
@@ -870,15 +892,36 @@ class PlanSelectScreen(Screen):
     def on_enter(self, *args):
         self.is_editing = False
         self.ids.edit_button.text = 'Edit'
+        self.update_last_workout_label()
         self.populate_plans()
+
+    def update_last_workout_label(self):
+        app = App.get_running_app()
+        sessions = app.data.get('workout_sessions', [])
+        if not sessions:
+            self.ids.last_workout_label.text = 'No workouts logged yet'
+            return
+
+        latest_date_str = max(s['date'] for s in sessions)
+        latest_date = datetime.strptime(latest_date_str, '%Y-%m-%d')
+        days_since = (datetime.today() - latest_date).days
+
+        if days_since == 0:
+            self.ids.last_workout_label.text = 'Last workout: Today'
+        elif days_since == 1:
+            self.ids.last_workout_label.text = 'Last workout: Yesterday'
+        else:
+            self.ids.last_workout_label.text = f'Days since last workout: {days_since}'
 
     def populate_plans(self):
         self.ids.plan_list.clear_widgets()
         for plan in App.get_running_app().data['plans']:
-            item = PlanListItem()
+            item = PlanListItem(is_editing=self.is_editing)
             item.ids.main_button.text = plan['name']
             item.ids.main_button.bind(on_press=lambda instance, p_id=plan['id']: self.select_plan(p_id))
             item.ids.delete_button.bind(on_press=lambda instance, p_id=plan['id']: self.confirm_delete_plan(p_id))
+            item.ids.move_up_button.bind(on_press=lambda instance, p_id=plan['id']: self.move_plan(p_id, -1))
+            item.ids.move_down_button.bind(on_press=lambda instance, p_id=plan['id']: self.move_plan(p_id, 1))
             self.ids.plan_list.add_widget(item)
 
     def select_plan(self, plan_id):
@@ -899,11 +942,19 @@ class PlanSelectScreen(Screen):
     def toggle_edit_mode(self):
         self.is_editing = not self.is_editing
         self.ids.edit_button.text = 'Done' if self.is_editing else 'Edit'
-        for child in self.ids.plan_list.children:
-            child.ids.delete_button.size_hint_x = 0.15 if self.is_editing else 0
-            child.ids.delete_button.width = child.height if self.is_editing else 0
-            child.ids.delete_button.opacity = 1 if self.is_editing else 0
-            child.ids.delete_button.disabled = not self.is_editing
+        self.populate_plans() # Repopulate to update item views
+
+    def move_plan(self, plan_id, direction):
+        app = App.get_running_app()
+        plans = app.data['plans']
+        idx = next((i for i, p in enumerate(plans) if p['id'] == plan_id), -1)
+        
+        if idx != -1:
+            new_idx = idx + direction
+            if 0 <= new_idx < len(plans):
+                plans.insert(new_idx, plans.pop(idx))
+                app.save_data()
+                self.populate_plans()
 
 
 class WorkoutPlanScreen(Screen):
@@ -917,7 +968,6 @@ class WorkoutPlanScreen(Screen):
     def load_plan(self, plan_id=None, new_plan=False):
         app = App.get_running_app()
         if new_plan:
-            # FIX: Use a longer, more unique ID
             new_id = f"plan_{uuid.uuid4().hex[:16]}"
             new_plan_data = {"id": new_id, "name": f"New Plan", "exercises": []}
             app.data['plans'].append(new_plan_data)
@@ -964,6 +1014,7 @@ class WorkoutPlanScreen(Screen):
         if plan and new_name:
             plan['name'] = new_name
             app.save_data()
+            self.ids.plan_title_label.text = new_name
 
     def select_exercise(self, exercise_data):
         if self.is_workout_active:
@@ -1003,7 +1054,6 @@ class WorkoutPlanScreen(Screen):
         
         if save and session_data:
             final_session = {
-                # FIX: Use a longer, more unique ID
                 'session_id': f"sess_{uuid.uuid4().hex[:16]}",
                 'date': session_data.get('date', ''),
                 'plan_id': session_data.get('plan_id', ''),
@@ -1106,7 +1156,6 @@ class ExerciseCreationScreen(Screen):
 
         if plan and self.ids.exercise_name_input.text and self.ids.primary_spinner.text != 'Primary Muscle':
             new_exercise = {
-                # FIX: Use a longer, more unique ID
                 "id": f"ex_{uuid.uuid4().hex[:16]}",
                 "name": self.ids.exercise_name_input.text,
                 "primary_muscle": self.ids.primary_spinner.text,
@@ -1150,42 +1199,43 @@ class ExerciseDetailScreen(Screen):
         sessions = app.data.get('workout_sessions', [])
         
         weight_data, reps_data, volume_data = [], [], []
+        exercise_sessions = []
         for sess in sorted(sessions, key=lambda x: x['date']):
             for ex in sess['exercises']:
                 ex_id_key = 'id' if 'id' in ex else 'exercise_id'
                 if ex[ex_id_key] == self.current_exercise_id and ex.get('sets'):
-                    avg_weight = sum(s['weight'] for s in ex['sets']) / len(ex['sets'])
-                    avg_reps = sum(s['reps'] for s in ex['sets']) / len(ex['sets'])
-                    total_volume = sum(s['weight'] * s['reps'] for s in ex['sets'])
-                    weight_data.append(avg_weight)
-                    reps_data.append(avg_reps)
-                    volume_data.append(total_volume)
+                    exercise_sessions.append(ex)
+
+        for ex in exercise_sessions:
+            avg_weight = sum(s['weight'] for s in ex['sets']) / len(ex['sets'])
+            avg_reps = sum(s['reps'] for s in ex['sets']) / len(ex['sets'])
+            total_volume = sum(s['weight'] * s['reps'] for s in ex['sets'])
+            weight_data.append(avg_weight)
+            reps_data.append(avg_reps)
+            volume_data.append(total_volume)
         
         last_5_weights = weight_data[-5:]
         last_5_reps = reps_data[-5:]
         last_5_vols = volume_data[-5:]
         
-        x_max = len(last_5_weights) - 1 if len(last_5_weights) > 1 else 1
+        x_max = 4 # Represents 5 data points (indices 0-4)
 
-        if last_5_weights:
-            self.ids.weight_reps_graph.update_plot(
-                points1=[(i, w) for i, w in enumerate(last_5_weights)],
-                y_min1=min(last_5_weights) * 0.9, y_max1=max(last_5_weights) * 1.1,
-                points2=[(i, r) for i, r in enumerate(last_5_reps)],
-                y_min2=min(last_5_reps) * 0.9, y_max2=max(last_5_reps) * 1.1,
-                x_max=x_max
-            )
-        else:
-            self.ids.weight_reps_graph.update_plot()
+        self.ids.weight_reps_graph.update_plot(
+            points1=[(i, w) for i, w in enumerate(last_5_weights)],
+            y_min1=min(last_5_weights) * 0.9 if last_5_weights else 0, 
+            y_max1=max(last_5_weights) * 1.1 if last_5_weights else 1,
+            points2=[(i, r) for i, r in enumerate(last_5_reps)],
+            y_min2=min(last_5_reps) * 0.9 if last_5_reps else 0, 
+            y_max2=max(last_5_reps) * 1.1 if last_5_reps else 1,
+            x_max=x_max
+        )
 
-        if last_5_vols:
-            self.ids.volume_graph.update_plot(
-                points1=[(i, v) for i, v in enumerate(last_5_vols)],
-                y_min1=min(last_5_vols) * 0.9, y_max1=max(last_5_vols) * 1.1,
-                x_max=x_max
-            )
-        else:
-            self.ids.volume_graph.update_plot()
+        self.ids.volume_graph.update_plot(
+            points1=[(i, v) for i, v in enumerate(last_5_vols)],
+            y_min1=min(last_5_vols) * 0.9 if last_5_vols else 0, 
+            y_max1=max(last_5_vols) * 1.1 if last_5_vols else 1,
+            x_max=x_max
+        )
 
 
     def toggle_edit_mode(self):
@@ -1214,6 +1264,7 @@ class ExerciseDetailScreen(Screen):
 class ActiveWorkoutScreen(Screen):
     exercise_data = DictProperty({})
     session_data = DictProperty({})
+    target_volume = NumericProperty(0)
     
     rest_time_remaining = NumericProperty(0)
     is_resting = BooleanProperty(False)
@@ -1230,6 +1281,17 @@ class ActiveWorkoutScreen(Screen):
         self.ids.set_list.clear_widgets()
         self.stop_rest_timer()
         
+        app = App.get_running_app()
+        history = app.get_exercise_history(self.exercise_data['id'])
+        last_5_volumes = history[-5:]
+        if last_5_volumes:
+            avg_volume = sum(last_5_volumes) / len(last_5_volumes)
+            self.target_volume = avg_volume * 1.1
+        else:
+            self.target_volume = 1 # Avoid division by zero, give a default
+        
+        self.ids.volume_progress_bar.max = self.target_volume
+        
         ex_id = self.exercise_data['id']
         if ex_id in self.session_data.get('exercises', {}):
             ex_log = self.session_data['exercises'][ex_id]
@@ -1238,14 +1300,20 @@ class ActiveWorkoutScreen(Screen):
                 set_entry = SetEntry(set_number=i + 1)
                 set_entry.ids.weight_input.text = str(s['weight'])
                 set_entry.ids.reps_input.text = str(s['reps'])
+                set_entry.ids.weight_input.bind(text=self.update_volume_progress)
+                set_entry.ids.reps_input.bind(text=self.update_volume_progress)
                 self.ids.set_list.add_widget(set_entry)
             self.update_set_numbers()
         else:
             self.ids.exercise_notes_input.text = ''
             for _ in range(3): self.add_set()
+        
+        self.update_volume_progress()
 
     def add_set(self):
         new_set = SetEntry()
+        new_set.ids.weight_input.bind(text=self.update_volume_progress)
+        new_set.ids.reps_input.bind(text=self.update_volume_progress)
         self.ids.set_list.add_widget(new_set)
         self.update_set_numbers()
         Clock.schedule_once(lambda dt: self.ids.set_scroll.scroll_to(new_set))
@@ -1254,11 +1322,23 @@ class ActiveWorkoutScreen(Screen):
         if len(self.ids.set_list.children) > 1:
             self.ids.set_list.remove_widget(set_widget)
             self.update_set_numbers()
+            self.update_volume_progress() # Update bar after removing a set
 
     def update_set_numbers(self):
         for i, widget in enumerate(reversed(self.ids.set_list.children)):
             widget.set_number = i + 1
             widget.can_be_removed = len(self.ids.set_list.children) > 1
+
+    def update_volume_progress(self, *args):
+        current_volume = 0
+        for set_widget in reversed(self.ids.set_list.children):
+            try:
+                weight = float(set_widget.ids.weight_input.text or 0)
+                reps = int(set_widget.ids.reps_input.text or 0)
+                current_volume += weight * reps
+            except (ValueError, AttributeError):
+                continue
+        self.ids.volume_progress_bar.value = current_volume
 
     def start_rest_timer(self, restart=True):
         if restart:
@@ -1369,9 +1449,6 @@ class WorkoutSummaryScreen(Screen):
         self.manager.current = 'workout_plan_screen'
 
 
-class StatisticsScreen(Screen):
-    pass
-
 class GymApp(App):
     data = DictProperty(None)
 
@@ -1386,7 +1463,6 @@ class GymApp(App):
         sm.add_widget(ExerciseDetailScreen(name='exercise_detail_screen'))
         sm.add_widget(ActiveWorkoutScreen(name='active_workout_screen'))
         sm.add_widget(WorkoutSummaryScreen(name='workout_summary_screen'))
-        sm.add_widget(StatisticsScreen(name='statistics_screen'))
         return sm
 
     def load_data(self):
@@ -1417,10 +1493,29 @@ class GymApp(App):
     def get_plan_name(self, plan_id):
         plan = next((p for p in self.data['plans'] if p['id'] == plan_id), None)
         return plan['name'] if plan else ''
+    
+    def get_exercise_history(self, exercise_id):
+        """
+        Retrieves the total volume history for a specific exercise.
+        Returns a list of total volumes, sorted by workout date.
+        """
+        sessions = self.data.get('workout_sessions', [])
+        
+        dated_volumes = []
+        for sess in sessions:
+            for ex in sess.get('exercises', []):
+                ex_id_key = 'id' if 'id' in ex else 'exercise_id'
+                if ex.get(ex_id_key) == exercise_id and ex.get('sets'):
+                    total_volume = sum(s.get('weight', 0) * s.get('reps', 0) for s in ex['sets'])
+                    dated_volumes.append((sess['date'], total_volume))
+        
+        dated_volumes.sort(key=lambda x: x[0])
+        volume_history = [volume for date, volume in dated_volumes]
+        
+        return volume_history
 
     def delete_item(self, item_type, item_id, plan_id=None):
         if item_type == 'plan':
-            # FIX: Also delete associated workout sessions
             self.data['plans'] = [p for p in self.data['plans'] if p['id'] != item_id]
             self.data['workout_sessions'] = [s for s in self.data['workout_sessions'] if s.get('plan_id') != item_id]
             if self.root.current == 'plan_select_screen':
