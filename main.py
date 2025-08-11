@@ -4,6 +4,7 @@ import json
 import uuid
 from datetime import datetime, timedelta
 import time
+import os
 
 from kivy.config import Config
 
@@ -34,10 +35,12 @@ from kivy.core.text import LabelBase
 
 # --- Font Registration ---
 # On EndeavourOS, you can install the font using: paru -S ttf-jetbrains-mono
+# This ensures the font is bundled with the app
+font_path = os.path.join(os.path.dirname(__file__), 'assets/fonts/')
 try:
     LabelBase.register(name='JetBrainsMono',
-                       fn_regular='JetBrainsMono-Regular.ttf',
-                       fn_bold='JetBrainsMono-Bold.ttf')
+                       fn_regular=os.path.join(font_path, 'JetBrainsMono-Regular.ttf'),
+                       fn_bold=os.path.join(font_path, 'JetBrainsMono-Bold.ttf'))
     DEFAULT_FONT = 'JetBrainsMono'
 except (OSError, IOError):
     print("WARNING: JetBrains Mono font not found. Falling back to default.")
@@ -54,18 +57,22 @@ DANGER_COLOR = get_color_from_hex('#FF3B30')
 SUCCESS_COLOR = get_color_from_hex('#34C759')
 GREEN_COLOR = get_color_from_hex('#32D74B')
 RED_COLOR = get_color_from_hex('#FF453A')
-RADIUS = 20
+RADIUS = dp(12)
 
 
 # --- Kivy Design Language String ---
+# NOTE: This has been overhauled for better mobile proportions and aesthetics.
 KV = f'''
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import datetime datetime
+#:import dp kivy.metrics.dp
 #:import ACCENT_COLOR __main__.ACCENT_COLOR
 #:import PRIMARY_COLOR __main__.PRIMARY_COLOR
 #:import DANGER_COLOR __main__.DANGER_COLOR
 #:import SUCCESS_COLOR __main__.SUCCESS_COLOR
 #:import SURFACE_COLOR __main__.SURFACE_COLOR
+#:import TEXT_COLOR __main__.TEXT_COLOR
+#:import MUTED_TEXT_COLOR __main__.MUTED_TEXT_COLOR
 #:import RADIUS __main__.RADIUS
 
 # --- Base Widget Styles ---
@@ -73,12 +80,13 @@ KV = f'''
     color: {TEXT_COLOR}
     font_size: '16sp'
     font_name: '{DEFAULT_FONT}'
+    markup: True
 
 <Button>:
     background_color: 0, 0, 0, 0
     background_normal: ''
     color: {ACCENT_COLOR}
-    font_size: '18sp'
+    font_size: '16sp'
     font_name: '{DEFAULT_FONT}'
     canvas.before:
         Color:
@@ -86,7 +94,7 @@ KV = f'''
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [{RADIUS}]
+            radius: [RADIUS]
 
 <TextInput>:
     background_color: 0, 0, 0, 0
@@ -94,7 +102,7 @@ KV = f'''
     background_active: ''
     foreground_color: {TEXT_COLOR}
     cursor_color: {ACCENT_COLOR}
-    padding: [15, 10, 15, 10]
+    padding: [dp(15), dp(10), dp(15), dp(10)]
     font_name: '{DEFAULT_FONT}'
     canvas.before:
         Color:
@@ -102,11 +110,11 @@ KV = f'''
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [{RADIUS}]
+            radius: [RADIUS]
         Color:
             rgba: {ACCENT_COLOR} if self.focus else (0,0,0,0)
         Line:
-            rounded_rectangle: (self.x, self.y, self.width, self.height, {RADIUS})
+            rounded_rectangle: (self.x, self.y, self.width, self.height, RADIUS)
             width: 1.5
 
 <Spinner>:
@@ -120,34 +128,39 @@ KV = f'''
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [{RADIUS}]
+            radius: [RADIUS]
 
 <ProgressBar>:
     size_hint_y: None
-    height: '8dp'
+    height: dp(6)
     
 # --- Custom Widgets ---
 <ConfirmationPopup>:
-    size_hint: 0.8, 0.4
+    size_hint: 0.8, None
+    height: dp(200)
     background_color: 0,0,0,0
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '20dp'
+        padding: dp(20)
+        spacing: dp(20)
         canvas.before:
             Color:
                 rgba: {SURFACE_COLOR}
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [{RADIUS}]
+                radius: [RADIUS]
         Label:
             id: message_label
             text: 'Are you sure?'
             font_size: '18sp'
             halign: 'center'
+            valign: 'middle'
+            text_size: self.width, None
         BoxLayout:
-            spacing: '10dp'
+            size_hint_y: None
+            height: dp(50)
+            spacing: dp(10)
             Button:
                 text: 'Cancel'
                 on_press: root.dismiss()
@@ -161,16 +174,17 @@ KV = f'''
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [{RADIUS}]
-                color: {get_color_from_hex('#FFFFFF')}
+                        radius: [RADIUS]
+                color: get_color_from_hex('#FFFFFF')
 
 <RestTimerPopup>:
-    size_hint: 0.8, 0.5
+    size_hint: 0.8, None
+    height: dp(250)
     background_color: 0,0,0,0
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '10dp'
+        padding: dp(20)
+        spacing: dp(10)
         canvas.before:
             Color:
                 rgba: SURFACE_COLOR
@@ -182,10 +196,11 @@ KV = f'''
             text: 'Manage Rest Timer'
             font_size: '20sp'
             bold: True
-            size_hint_y: 0.2
+            size_hint_y: None
+            height: dp(40)
         GridLayout:
             cols: 2
-            spacing: '10dp'
+            spacing: dp(10)
             Button:
                 text: 'Resume'
                 on_press: root.screen.resume_rest_timer(); root.dismiss()
@@ -209,19 +224,19 @@ KV = f'''
 
 <PlanListItem>:
     size_hint_y: None
-    height: '60dp'
-    spacing: '10dp'
+    height: dp(60)
+    spacing: dp(10)
     is_editing: False
     Button:
         id: main_button
         text: 'Plan'
     
     BoxLayout:
-        size_hint_x: 0.4 if root.is_editing else 0
-        width: self.minimum_width if root.is_editing else 0
+        size_hint_x: None
+        width: dp(120) if root.is_editing else 0
         opacity: 1 if root.is_editing else 0
         disabled: not root.is_editing
-        spacing: '5dp'
+        spacing: dp(5)
         Button:
             id: move_up_button
             text: '▲'
@@ -237,13 +252,13 @@ KV = f'''
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [{RADIUS}]
-            color: {get_color_from_hex('#FFFFFF')}
+                    radius: [RADIUS]
+            color: get_color_from_hex('#FFFFFF')
 
 <ExerciseListItem>:
     size_hint_y: None
-    height: '60dp'
-    spacing: '10dp'
+    height: dp(60)
+    spacing: dp(10)
     is_complete: False
     is_editing: False
     Button:
@@ -252,11 +267,11 @@ KV = f'''
         color: SUCCESS_COLOR if root.is_complete else ACCENT_COLOR
     
     BoxLayout:
-        size_hint_x: 0.4 if root.is_editing else 0
-        width: self.minimum_width if root.is_editing else 0
+        size_hint_x: None
+        width: dp(120) if root.is_editing else 0
         opacity: 1 if root.is_editing else 0
         disabled: not root.is_editing
-        spacing: '5dp'
+        spacing: dp(5)
         Button:
             id: move_up_button
             text: '▲'
@@ -272,13 +287,13 @@ KV = f'''
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [{RADIUS}]
-            color: {get_color_from_hex('#FFFFFF')}
+                    radius: [RADIUS]
+            color: get_color_from_hex('#FFFFFF')
 
 <SetEntry>:
     size_hint_y: None
-    height: '50dp'
-    spacing: '10dp'
+    height: dp(50)
+    spacing: dp(10)
     set_number: 0
     can_be_removed: True
     Label:
@@ -307,7 +322,7 @@ KV = f'''
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [{RADIUS}]
+                radius: [RADIUS]
         color: {get_color_from_hex('#FFFFFF')} if self.disabled == False else {MUTED_TEXT_COLOR}
         disabled: not root.can_be_removed
 
@@ -327,13 +342,14 @@ KV = f'''
 <PlanSelectScreen>:
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '10dp'
+        padding: dp(20)
+        spacing: dp(10)
         Label:
             text: 'GymApp'
             font_size: '34sp'
             bold: True
-            size_hint_y: 0.15
+            size_hint_y: None
+            height: dp(60)
         ScrollView:
             bar_width: 0 
             effect_cls: 'ScrollEffect'
@@ -342,24 +358,30 @@ KV = f'''
                 orientation: 'vertical'
                 size_hint_y: None
                 height: self.minimum_height
-                spacing: '10dp'
+                spacing: dp(10)
         BoxLayout:
-            size_hint_y: 0.15
-            spacing: '10dp'
+            size_hint_y: None
+            height: dp(50)
+            spacing: dp(10)
             Label:
                 id: last_workout_label
                 text: 'Days since last workout: N/A'
                 font_size: '14sp'
                 color: {MUTED_TEXT_COLOR}
+                # AESTHETIC FIX: Allow text to wrap and shorten to prevent overflow
+                text_size: self.width, None
+                halign: 'left'
+                valign: 'middle'
+                shorten: True
             Button:
                 text: 'Edit'
                 on_press: root.toggle_edit_mode()
                 id: edit_button
+                size_hint_x: 0.3
             Button:
                 text: '+'
-                font_size: '40sp'
-                size_hint_x: 1 if root.is_editing else 0
-                width: self.height if root.is_editing else 0
+                font_size: '30sp'
+                size_hint_x: 0.2 if root.is_editing else 0
                 opacity: 1 if root.is_editing else 0
                 disabled: not root.is_editing
                 on_press: root.manager.current = 'workout_plan_screen'; root.manager.get_screen('workout_plan_screen').load_plan(new_plan=True)
@@ -367,13 +389,14 @@ KV = f'''
 <WorkoutPlanScreen>:
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '15dp'
+        padding: dp(20)
+        spacing: dp(15)
+        # AESTHETIC FIX: Header layout adjusted for better balance
         GridLayout:
             cols: 3
             size_hint_y: None
-            height: '60dp'
-            spacing: '10dp'
+            height: dp(60)
+            spacing: dp(10)
             Button:
                 text: '<'
                 size_hint_x: 0.2
@@ -382,13 +405,17 @@ KV = f'''
                 Label:
                     id: plan_title_label
                     text: plan_title_input.text
-                    font_size: '30sp'
+                    font_size: '24sp' # Reduced font size to prevent overflow
                     bold: True
                     opacity: 1 if not root.is_editing else 0
+                    halign: 'center'
+                    valign: 'middle'
+                    text_size: self.width, None
+                    shorten: True
                 TextInput:
                     id: plan_title_input
                     text: 'Workout Plan'
-                    font_size: '30sp'
+                    font_size: '24sp'
                     bold: True
                     multiline: False
                     disabled: not root.is_editing
@@ -406,32 +433,32 @@ KV = f'''
                 orientation: 'vertical'
                 size_hint_y: None
                 height: self.minimum_height
-                spacing: '10dp'
+                spacing: dp(10)
         
+        # AESTHETIC FIX: Use AnchorLayout to reliably pin buttons to the bottom
         AnchorLayout:
             anchor_x: 'center'
             anchor_y: 'bottom'
             size_hint_y: 0.2
-            padding: ['0dp', '10dp', '0dp', '0dp']
             BoxLayout:
                 orientation: 'vertical'
                 size_hint_y: None
                 height: self.minimum_height
-                spacing: '10dp'
+                spacing: dp(10)
                 Button:
                     id: add_exercise_button
                     text: '+ Add Exercise'
-                    font_size: '24sp'
+                    font_size: '18sp'
                     size_hint_y: None
-                    height: '50dp'
+                    height: dp(50)
                     opacity: 1 if root.is_editing else 0
                     disabled: not root.is_editing
                     on_press: root.manager.current = 'exercise_creation_screen'
 
                 BoxLayout:
                     size_hint_y: None
-                    height: '50dp'
-                    spacing: '10dp'
+                    height: dp(50)
+                    spacing: dp(10)
                     Button:
                         id: edit_mode_button
                         text: 'Edit Plan' if not root.is_editing else 'Done Editing'
@@ -444,10 +471,11 @@ KV = f'''
 <ExerciseCreationScreen>:
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '15dp'
+        padding: dp(20)
+        spacing: dp(15)
         BoxLayout:
-            size_hint_y: 0.2
+            size_hint_y: None
+            height: dp(60)
             Button:
                 text: '<'
                 font_size: '24sp'
@@ -456,28 +484,36 @@ KV = f'''
                 on_press: root.manager.current = 'workout_plan_screen'
             Label:
                 text: 'Add Exercise'
-                font_size: '34sp'
+                font_size: '24sp'
                 bold: True
+        # AESTHETIC FIX: Made input fields have fixed height for consistency
         TextInput:
             id: exercise_name_input
             hint_text: 'Exercise Name'
-            size_hint_y: 0.1
+            size_hint_y: None
+            height: dp(50)
         Spinner:
             id: primary_spinner
             text: 'Primary Muscle'
-            size_hint_y: 0.1
+            size_hint_y: None
+            height: dp(50)
         Spinner:
             id: secondary_spinner
             text: 'Secondary Muscle (Optional)'
-            size_hint_y: 0.1
+            size_hint_y: None
+            height: dp(50)
         TextInput:
             id: rest_time_input
             hint_text: 'Rest Time (seconds), e.g. 60'
             input_filter: 'int'
+            size_hint_y: None
+            height: dp(50)
+        Widget: # Spacer
             size_hint_y: 0.1
         BoxLayout:
-            size_hint_y: 0.15
-            spacing: '10dp'
+            size_hint_y: None
+            height: dp(50)
+            spacing: dp(10)
             Button:
                 text: 'Save'
                 on_press: root.save_exercise()
@@ -488,13 +524,13 @@ KV = f'''
 <ExerciseDetailScreen>:
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '10dp'
+        padding: dp(20)
+        spacing: dp(10)
         GridLayout:
             cols: 3
             size_hint_y: None
-            height: '60dp'
-            spacing: '10dp'
+            height: dp(60)
+            spacing: dp(10)
             Button:
                 text: '<'
                 size_hint_x: 0.2
@@ -503,13 +539,17 @@ KV = f'''
                 Label:
                     id: exercise_title_label
                     text: exercise_title_input.text
-                    font_size: '30sp'
+                    font_size: '24sp'
                     bold: True
                     opacity: 1 if not root.is_editing else 0
+                    halign: 'center'
+                    valign: 'middle'
+                    text_size: self.width, None
+                    shorten: True
                 TextInput:
                     id: exercise_title_input
                     text: 'Exercise'
-                    font_size: '30sp'
+                    font_size: '24sp'
                     bold: True
                     multiline: False
                     disabled: not root.is_editing
@@ -518,72 +558,80 @@ KV = f'''
             Widget:
                 size_hint_x: 0.2
         
+        # AESTHETIC FIX: Edit view now has fixed height elements
         BoxLayout:
-            size_hint_y: 0.8 if root.is_editing else 0
-            height: self.minimum_height if root.is_editing else 0
+            size_hint_y: 1 if root.is_editing else 0
             opacity: 1 if root.is_editing else 0
             disabled: not root.is_editing
             orientation: 'vertical'
-            spacing: '15dp'
-            padding: ['0dp', '15dp']
+            spacing: dp(10)
+            padding: [0, dp(15), 0, 0]
             Label:
                 text: 'Primary Muscle'
                 size_hint_y: None
-                height: '20dp'
+                height: dp(20)
                 halign: 'left'
+                text_size: self.width, None
             Spinner:
                 id: primary_spinner
                 text: 'Primary Muscle'
                 size_hint_y: None
-                height: '50dp'
+                height: dp(50)
             Label:
                 text: 'Secondary Muscle'
                 size_hint_y: None
-                height: '20dp'
+                height: dp(20)
                 halign: 'left'
+                text_size: self.width, None
             Spinner:
                 id: secondary_spinner
                 text: 'Secondary Muscle'
                 size_hint_y: None
-                height: '50dp'
+                height: dp(50)
             Label:
                 text: 'Default Rest Time (s)'
                 size_hint_y: None
-                height: '20dp'
+                height: dp(20)
                 halign: 'left'
+                text_size: self.width, None
             TextInput:
                 id: rest_time_input
                 hint_text: 'Rest Time (s)'
                 input_filter: 'int'
                 size_hint_y: None
-                height: '50dp'
+                height: dp(50)
+            Widget: # Spacer
 
+        # AESTHETIC FIX: Graph view now has explicit size hints
         BoxLayout:
             orientation: 'vertical'
-            size_hint_y: 0.8 if not root.is_editing else 0
+            size_hint_y: 1 if not root.is_editing else 0
             opacity: 1 if not root.is_editing else 0
             disabled: root.is_editing
-            spacing: '5dp'
+            spacing: dp(5)
             Label:
                 text: 'Avg. Weight (Red) & Reps (Green)'
-                size_hint_y: 0.05
+                size_hint_y: 0.1
                 font_size: '14sp'
                 color: {MUTED_TEXT_COLOR}
             PureKivyGraph:
                 id: weight_reps_graph
                 is_dual_axis: True
+                size_hint_y: 0.4
             Label:
                 text: 'Total Volume Progression'
-                size_hint_y: 0.05
+                size_hint_y: 0.1
                 font_size: '14sp'
                 color: {MUTED_TEXT_COLOR}
             PureKivyGraph:
                 id: volume_graph
+                size_hint_y: 0.4
         
         BoxLayout:
-            size_hint_y: 0.15
-            padding: ['0dp', '10dp', '0dp', '0dp']
-            spacing: '10dp'
+            size_hint_y: None
+            height: dp(60)
+            padding: [0, dp(10), 0, 0]
+            spacing: dp(10)
             Button:
                 id: edit_button
                 text: 'Edit Exercise' if not root.is_editing else 'Cancel'
@@ -600,13 +648,13 @@ KV = f'''
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [{RADIUS}]
+                        radius: [RADIUS]
 
 <ActiveWorkoutScreen>:
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '10dp'
+        padding: dp(20)
+        spacing: dp(10)
         
         ProgressBar:
             id: volume_progress_bar
@@ -616,16 +664,20 @@ KV = f'''
         GridLayout:
             cols: 3
             size_hint_y: None
-            height: '60dp'
+            height: dp(60)
             Button:
                 text: '<'
                 size_hint_x: 0.2
-                on_press: root.finish_exercise()
+                on_press: root.confirm_finish_exercise()
             Label:
                 id: active_exercise_title
                 text: 'Active Workout'
-                font_size: '34sp'
+                font_size: '24sp'
                 bold: True
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.width, None
+                shorten: True
             Widget:
                 size_hint_x: 0.2
         
@@ -638,32 +690,33 @@ KV = f'''
                 cols: 1
                 size_hint_y: None
                 height: self.minimum_height
-                spacing: '10dp'
+                spacing: dp(10)
 
+        # AESTHETIC FIX: Bottom controls have fixed height to avoid being pushed off screen
         BoxLayout:
             orientation: 'vertical'
             size_hint_y: None
             height: self.minimum_height
-            spacing: '10dp'
-            padding: ['0dp', '10dp', '0dp', '0dp']
+            spacing: dp(10)
+            padding: [0, dp(10), 0, 0]
 
             TextInput:
                 id: exercise_notes_input
                 hint_text: 'Notes for this exercise...'
                 size_hint_y: None
-                height: '80dp'
+                height: dp(80)
                 multiline: True
             
             Button:
                 text: '+ Add Set'
                 size_hint_y: None
-                height: '50dp'
+                height: dp(50)
                 on_press: root.add_set()
 
             BoxLayout:
                 size_hint_y: None
-                height: '50dp'
-                spacing: '10dp'
+                height: dp(50)
+                spacing: dp(10)
                 
                 Button:
                     id: rest_timer_button
@@ -680,7 +733,7 @@ KV = f'''
                 
                 Button:
                     text: 'Finish Exercise'
-                    on_press: root.finish_exercise()
+                    on_press: root.confirm_finish_exercise()
                     canvas.before:
                         Color:
                             rgba: SUCCESS_COLOR
@@ -692,13 +745,14 @@ KV = f'''
 <WorkoutSummaryScreen>:
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '10dp'
+        padding: dp(20)
+        spacing: dp(10)
         Label:
             text: 'Workout Summary'
             font_size: '34sp'
             bold: True
-            size_hint_y: 0.15
+            size_hint_y: None
+            height: dp(60)
         
         ScrollView:
             bar_width: 0
@@ -707,11 +761,12 @@ KV = f'''
                 cols: 1
                 size_hint_y: None
                 height: self.minimum_height
-                spacing: '15dp'
+                spacing: dp(15)
         
         BoxLayout:
-            size_hint_y: 0.15
-            spacing: '10dp'
+            size_hint_y: None
+            height: dp(50)
+            spacing: dp(10)
             Button:
                 text: 'Cancel'
                 on_press: root.cancel_finish()
@@ -722,7 +777,7 @@ KV = f'''
                         pos: self.pos
                         size: self.size
                         radius: [RADIUS]
-                color: {get_color_from_hex('#FFFFFF')}
+                color: get_color_from_hex('#FFFFFF')
             Button:
                 text: 'Confirm & Save'
                 on_press: root.confirm_finish()
@@ -806,8 +861,8 @@ class PureKivyGraph(FloatLayout):
         if graph_w <= 1 or graph_h <= 1: return
 
         with self.canvas.before:
-            Color(*PRIMARY_COLOR)
-            Rectangle(pos=(graph_x, graph_y), size=(graph_w, graph_h))
+            # Color(*PRIMARY_COLOR) # Optional: background for the graph area
+            # Rectangle(pos=(graph_x, graph_y), size=(graph_w, graph_h))
             Color(*MUTED_TEXT_COLOR)
             Line(rectangle=(graph_x, graph_y, graph_w, graph_h), width=1.1)
 
@@ -935,6 +990,7 @@ class PlanSelectScreen(Screen):
         def confirm_handler(*args):
             App.get_running_app().delete_item('plan', plan_id)
             popup.dismiss()
+            # No need to call populate_plans here, delete_item does it via on_stop
             
         popup.bind(on_confirm=confirm_handler)
         popup.open()
@@ -953,7 +1009,7 @@ class PlanSelectScreen(Screen):
             new_idx = idx + direction
             if 0 <= new_idx < len(plans):
                 plans.insert(new_idx, plans.pop(idx))
-                app.save_data()
+                # No need to save here, will be saved on_stop
                 self.populate_plans()
 
 
@@ -971,7 +1027,6 @@ class WorkoutPlanScreen(Screen):
             new_id = f"plan_{uuid.uuid4().hex[:16]}"
             new_plan_data = {"id": new_id, "name": f"New Plan", "exercises": []}
             app.data['plans'].append(new_plan_data)
-            app.save_data()
             self.current_plan_id = new_id
             self.is_editing = True
         else:
@@ -988,7 +1043,10 @@ class WorkoutPlanScreen(Screen):
             return
 
         self.ids.plan_title_input.text = plan['name']
+        self.ids.plan_title_label.text = plan['name']
         self.ids.exercise_list_in_plan.clear_widgets()
+        
+        # Populate exercises and check completion status
         for exercise in plan['exercises']:
             item = ExerciseListItem(is_editing=self.is_editing)
             item.ids.main_button.text = f"{exercise['name']}"
@@ -996,8 +1054,15 @@ class WorkoutPlanScreen(Screen):
             item.ids.delete_button.bind(on_press=lambda instance, ex_id=exercise['id']: self.confirm_delete_exercise(ex_id))
             item.ids.move_up_button.bind(on_press=lambda instance, ex_id=exercise['id']: self.move_exercise(ex_id, -1))
             item.ids.move_down_button.bind(on_press=lambda instance, ex_id=exercise['id']: self.move_exercise(ex_id, 1))
+
+            if self.is_workout_active:
+                ex_log = self.active_session_data.get('exercises', {}).get(exercise['id'])
+                if ex_log and ex_log.get('sets'):
+                    item.is_complete = True
+
             self.ids.exercise_list_in_plan.add_widget(item)
         
+        self.ids.edit_mode_button.text = 'Done Editing' if self.is_editing else 'Edit Plan'
         self.ids.workout_control_button.text = 'Start Workout'
         self.ids.workout_control_button.canvas.before.clear()
         with self.ids.workout_control_button.canvas.before:
@@ -1013,7 +1078,6 @@ class WorkoutPlanScreen(Screen):
         plan = next((p for p in app.data['plans'] if p['id'] == self.current_plan_id), None)
         if plan and new_name:
             plan['name'] = new_name
-            app.save_data()
             self.ids.plan_title_label.text = new_name
 
     def select_exercise(self, exercise_data):
@@ -1062,7 +1126,6 @@ class WorkoutPlanScreen(Screen):
             if final_session['exercises']:
                 app = App.get_running_app()
                 app.data['workout_sessions'].append(final_session)
-                app.save_data()
 
         self.is_workout_active = False
         self.ids.edit_mode_button.disabled = False
@@ -1072,15 +1135,16 @@ class WorkoutPlanScreen(Screen):
     def update_timer_display(self, dt):
         elapsed = time.time() - self.start_time
         mins, secs = divmod(elapsed, 60)
-        self.ids.workout_control_button.text = f'Finish Workout ({int(mins):02}:{int(secs):02})'
+        self.ids.workout_control_button.text = f'Finish ({int(mins):02}:{int(secs):02})'
 
     def update_exercise_status(self, exercise_id, is_complete):
-        ex_data = self.active_session_data.get('exercises', {}).get(exercise_id)
-        if not ex_data:
-            return
+        plan = next((p for p in App.get_running_app().data['plans'] if p['id'] == self.current_plan_id), None)
+        if not plan: return
+        exercise_data = next((e for e in plan['exercises'] if e['id'] == exercise_id), None)
+        if not exercise_data: return
 
         for item in self.ids.exercise_list_in_plan.children:
-            if isinstance(item, ExerciseListItem) and item.ids.main_button.text == ex_data['name']:
+            if isinstance(item, ExerciseListItem) and item.ids.main_button.text == exercise_data['name']:
                 item.is_complete = is_complete
                 break
     
@@ -1119,7 +1183,6 @@ class WorkoutPlanScreen(Screen):
             if plan['id'] == self.current_plan_id:
                 plan['exercises'] = [e for e in plan['exercises'] if e['id'] != exercise_id]
                 break
-        app.save_data()
         self.update_view()
 
     def move_exercise(self, exercise_id, direction):
@@ -1133,7 +1196,6 @@ class WorkoutPlanScreen(Screen):
                     new_idx = idx + direction
                     if 0 <= new_idx < len(exercises):
                         exercises.insert(new_idx, exercises.pop(idx))
-                        app.save_data()
                         self.update_view()
                 break
 
@@ -1163,7 +1225,6 @@ class ExerciseCreationScreen(Screen):
                 "rest_time": int(self.ids.rest_time_input.text or 60)
             }
             plan['exercises'].append(new_exercise)
-            app.save_data()
             plan_screen.load_plan(plan_id=plan['id'])
             self.manager.current = 'workout_plan_screen'
 
@@ -1187,6 +1248,7 @@ class ExerciseDetailScreen(Screen):
         if not exercise: return
         
         self.ids.exercise_title_input.text = exercise['name']
+        self.ids.exercise_title_label.text = exercise['name']
         muscle_groups = app.data.get('muscle_groups', [])
         self.ids.primary_spinner.values = [m for m in muscle_groups if m != 'None']
         self.ids.secondary_spinner.values = muscle_groups
@@ -1253,7 +1315,6 @@ class ExerciseDetailScreen(Screen):
                         ex['rest_time'] = int(self.ids.rest_time_input.text or 60)
                         break
                 break
-        app.save_data()
         self.is_editing = False
         self.update_view()
 
@@ -1272,14 +1333,18 @@ class ActiveWorkoutScreen(Screen):
     rest_timer_text = StringProperty('Start Rest')
 
     def on_leave(self, *args):
-        self.stop_rest_timer()
+        # Don't stop the timer automatically, user might be checking history
+        pass
 
     def load_exercise(self, exercise_data, session_data):
         self.exercise_data = exercise_data
         self.session_data = session_data
         self.ids.active_exercise_title.text = self.exercise_data['name']
         self.ids.set_list.clear_widgets()
-        self.stop_rest_timer()
+        
+        # If there's an active timer for another exercise, stop it
+        if self.is_resting:
+            self.stop_rest_timer()
         
         app = App.get_running_app()
         history = app.get_exercise_history(self.exercise_data['id'])
@@ -1306,7 +1371,18 @@ class ActiveWorkoutScreen(Screen):
             self.update_set_numbers()
         else:
             self.ids.exercise_notes_input.text = ''
-            for _ in range(3): self.add_set()
+            # Pre-populate with previous workout's sets if available
+            last_session_sets = app.get_last_sets_for_exercise(ex_id)
+            if last_session_sets:
+                 for i, s in enumerate(last_session_sets):
+                    set_entry = SetEntry(set_number=i + 1)
+                    set_entry.ids.weight_input.text = str(s['weight'])
+                    set_entry.ids.reps_input.text = str(s['reps'])
+                    set_entry.ids.weight_input.bind(text=self.update_volume_progress)
+                    set_entry.ids.reps_input.bind(text=self.update_volume_progress)
+                    self.ids.set_list.add_widget(set_entry)
+            else:
+                for _ in range(3): self.add_set() # Default to 3 empty sets
         
         self.update_volume_progress()
 
@@ -1322,7 +1398,7 @@ class ActiveWorkoutScreen(Screen):
         if len(self.ids.set_list.children) > 1:
             self.ids.set_list.remove_widget(set_widget)
             self.update_set_numbers()
-            self.update_volume_progress() # Update bar after removing a set
+            self.update_volume_progress()
 
     def update_set_numbers(self):
         for i, widget in enumerate(reversed(self.ids.set_list.children)):
@@ -1341,19 +1417,20 @@ class ActiveWorkoutScreen(Screen):
         self.ids.volume_progress_bar.value = current_volume
 
     def start_rest_timer(self, restart=True):
+        if self.is_resting: return # Don't start a new timer if one is running
         if restart:
             total_time = self.exercise_data.get('rest_time', 60)
             self.rest_time_remaining = total_time
         
         self.is_resting = True
-        self.rest_timer_text = f"{int(self.rest_time_remaining)}s Remaining"
+        self.rest_timer_text = f"{int(self.rest_time_remaining)}s"
         
         if self.timer_event: self.timer_event.cancel()
         self.timer_event = Clock.schedule_interval(self.update_rest_timer, 1)
 
     def update_rest_timer(self, dt):
         self.rest_time_remaining -= 1
-        self.rest_timer_text = f"{int(self.rest_time_remaining)}s Remaining"
+        self.rest_timer_text = f"{int(self.rest_time_remaining)}s"
         if self.rest_time_remaining <= 0:
             self.stop_rest_timer()
             
@@ -1370,15 +1447,28 @@ class ActiveWorkoutScreen(Screen):
             self.timer_event.cancel()
 
     def resume_rest_timer(self):
+        if not self.is_resting: return
         self.start_rest_timer(restart=False)
 
     def add_to_rest_timer(self, seconds):
+        if not self.is_resting: return
         self.rest_time_remaining += seconds
-        self.rest_timer_text = f"{int(self.rest_time_remaining)}s Remaining"
+        self.rest_timer_text = f"{int(self.rest_time_remaining)}s"
 
     def open_rest_timer_options(self):
         self.pause_rest_timer()
         popup = RestTimerPopup(screen=self)
+        popup.open()
+
+    def confirm_finish_exercise(self):
+        popup = ConfirmationPopup()
+        popup.ids.message_label.text = 'Finish this exercise and save sets?'
+        
+        def confirm_handler(*args):
+            self.finish_exercise()
+            popup.dismiss()
+
+        popup.bind(on_confirm=confirm_handler)
         popup.open()
 
     def finish_exercise(self):
@@ -1426,16 +1516,15 @@ class WorkoutSummaryScreen(Screen):
             
             ex_box.add_widget(Label(
                 text=f"[b]{exercise['name']}[/b]",
-                markup=True,
                 size_hint_y=None,
-                height='30dp'
+                height=dp(30)
             ))
             
             for s in exercise['sets']:
                 set_label = Label(
                     text=f"  - {s['weight']} kg x {s['reps']} reps",
                     size_hint_y=None,
-                    height='25dp'
+                    height=dp(25)
                 )
                 ex_box.add_widget(set_label)
             
@@ -1465,9 +1554,12 @@ class GymApp(App):
         sm.add_widget(WorkoutSummaryScreen(name='workout_summary_screen'))
         return sm
 
+    def get_data_file(self):
+        return os.path.join(self.user_data_dir, 'data.json')
+
     def load_data(self):
         try:
-            with open('data.json', 'r') as f:
+            with open(self.get_data_file(), 'r') as f:
                 self.data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             self.data = {
@@ -1475,19 +1567,20 @@ class GymApp(App):
                 "muscle_groups": ["None", "Chest", "Back", "Shoulders", "Biceps", "Triceps", "Quads", "Hamstrings", "Glutes", "Calves", "Abs"],
                 "workout_sessions": []
             }
-            self.save_data()
         
+        # Data migration/validation
         if 'workout_sessions' not in self.data:
             self.data['workout_sessions'] = []
         for plan in self.data.get('plans', []):
             for ex in plan.get('exercises', []):
                 if 'rest_time' not in ex:
                     ex['rest_time'] = 60
+    
+    def on_stop(self):
         self.save_data()
 
-
     def save_data(self):
-        with open('data.json', 'w') as f:
+        with open(self.get_data_file(), 'w') as f:
             json.dump(self.data, f, indent=2)
 
     def get_plan_name(self, plan_id):
@@ -1495,12 +1588,7 @@ class GymApp(App):
         return plan['name'] if plan else ''
     
     def get_exercise_history(self, exercise_id):
-        """
-        Retrieves the total volume history for a specific exercise.
-        Returns a list of total volumes, sorted by workout date.
-        """
         sessions = self.data.get('workout_sessions', [])
-        
         dated_volumes = []
         for sess in sessions:
             for ex in sess.get('exercises', []):
@@ -1510,9 +1598,16 @@ class GymApp(App):
                     dated_volumes.append((sess['date'], total_volume))
         
         dated_volumes.sort(key=lambda x: x[0])
-        volume_history = [volume for date, volume in dated_volumes]
-        
-        return volume_history
+        return [volume for date, volume in dated_volumes]
+
+    def get_last_sets_for_exercise(self, exercise_id):
+        sessions = sorted(self.data.get('workout_sessions', []), key=lambda x: x['date'], reverse=True)
+        for sess in sessions:
+            for ex in sess.get('exercises', []):
+                ex_id_key = 'id' if 'id' in ex else 'exercise_id'
+                if ex.get(ex_id_key) == exercise_id and ex.get('sets'):
+                    return ex['sets']
+        return []
 
     def delete_item(self, item_type, item_id, plan_id=None):
         if item_type == 'plan':
@@ -1528,8 +1623,6 @@ class GymApp(App):
                     break
             if self.root.current == 'workout_plan_screen':
                 self.root.get_screen('workout_plan_screen').update_view()
-        
-        self.save_data()
 
 if __name__ == '__main__':
     Builder.load_string(KV)
